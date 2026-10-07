@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Permata POS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ══════════ LOADING OVERLAY ══════════ -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="spinner-gold"></div>
+  <p>Memuat Permata POS...</p>
+</div>
+
+<!-- ══════════ TOAST ══════════ -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ══════════ LOGIN SCREEN ══════════ -->
+<div id="loginScreen" class="login-screen" style="display:none;">
+  <div class="login-card-wrap">
+    <div class="login-logo-box">
+      <div style="font-weight:700;color:var(--gold-base);font-size:18px;letter-spacing:0.05em;">PERMATA</div>
+      <div style="font-size:10px;color:var(--text-secondary);letter-spacing:0.15em;">EMAS &amp; PERAK</div>
+    </div>
+    <div class="login-badge"><span class="badge-dot"></span> SISTEM RESMI TOKO NABIRE</div>
+    <h2 class="login-title">Selamat Datang di <span>Permata POS</span></h2>
+    <p class="login-sub">Toko Emas &amp; Perak Permata Nabire — Sistem Kasir &amp; Manajemen Terpadu</p>
+
+    <div class="login-card">
+      <div class="role-tabs">
+        <button class="role-tab active" id="tabKaryawan" onclick="switchLoginTab('KARYAWAN')">
+          <i class="bi bi-person-badge"></i> Karyawan
+        </button>
+        <button class="role-tab" id="tabOwner" onclick="switchLoginTab('OWNER')">
+          <i class="bi bi-shield-check"></i> Owner
+        </button>
+      </div>
+
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <div class="input-icon-wrap">
+            <i class="bi bi-person"></i>
+            <input type="text" class="form-control" id="loginUsername" placeholder="Contoh: owner" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kode Sandi</label>
+          <div class="input-icon-wrap">
+            <i class="bi bi-lock"></i>
+            <input type="password" class="form-control" id="loginPassword" placeholder="Masukkan sandi akses" required>
+            <i class="bi bi-eye toggle-eye" onclick="toggleEye(this)"></i>
+          </div>
+        </div>
+
+        <div class="location-chip" id="locChip">
+          <i class="bi bi-geo-alt-fill"></i>
+          <div>
+            <div class="title" id="locTitle">Mendeteksi lokasi...</div>
+            <div class="sub" id="locSub">Mohon izinkan akses lokasi browser</div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-gold btn-block" id="btnLogin">
+          Masuk Sekarang <i class="bi bi-arrow-right"></i>
+        </button>
+      </form>
+
+      <hr class="soft">
+      <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-secondary);">
+        <i class="bi bi-cloud-check text-gold"></i> Database Google Sheets Terhubung
+        <span class="badge-pill badge-success" style="margin-left:auto;">ONLINE</span>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:1.25rem;">
+      Butuh bantuan login? Hubungi Owner toko. &bull; Security Level: AES-256
+    </p>
+  </div>
+</div>
+
+<!-- ══════════ APP SHELL ══════════ -->
+<div id="appShell" class="app-shell" style="display:none;">
+
+  <!-- SIDEBAR DESKTOP -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-box">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L4 8l8 14 8-14-8-6z" stroke="#D4AF37" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M4 8h16M12 2v6M8.5 8L12 22M15.5 8L12 22" stroke="#D4AF37" stroke-width="1" opacity="0.6"/>
+        </svg>
+      </div>
+      <div>
+        <h5>PERMATA</h5>
+        <small>EMAS &amp; PERAK NABIRE</small>
+      </div>
+    </div>
+    <ul class="sidebar-nav" id="sidebarNav"></ul>
+    <div class="sidebar-footer">
+      <a href="javascript:void(0)" class="nav-link" onclick="toggleDarkMode()">
+        <i class="bi bi-moon-stars"></i> <span>Mode Gelap/Terang</span>
+      </a>
+      <a href="javascript:void(0)" class="nav-link" style="color:var(--status-danger);" onclick="handleLogout()">
+        <i class="bi bi-box-arrow-left"></i> <span>Keluar</span>
+      </a>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <!-- TOPBAR MOBILE -->
+    <div class="topbar">
+      <div class="topbar-store">
+        <span style="font-weight:700;color:var(--gold-base);font-size:14px;" id="mTitle">Dashboard</span>
+      </div>
+      <div class="topbar-actions">
+        <div class="bell-wrap" onclick="openNotifPanel()">
+          <i class="bi bi-bell fs-5"></i>
+          <span class="bell-badge" id="bellBadgeM" style="display:none;">0</span>
+        </div>
+        <div id="avatarM"></div>
+      </div>
+    </div>
+
+    <!-- HEADER DESKTOP -->
+    <div class="desktop-header">
+      <div>
+        <h3 style="margin:0;font-size:24px;font-weight:700;" id="dTitle">Dashboard Operasional</h3>
+        <div style="color:var(--text-secondary);font-size:13px;margin-top:4px;" id="dSub">Toko Buka &bull; Nabire, WIT</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="bell-wrap" onclick="openNotifPanel()" style="cursor:pointer;">
+          <button class="btn btn-icon btn-outline"><i class="bi bi-bell"></i></button>
+          <span class="bell-badge" id="bellBadgeD" style="display:none;">0</span>
+        </div>
+        <div id="userBlockD" style="display:flex;align-items:center;gap:10px;"></div>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- ═══ DASHBOARD ═══ -->
+      <section id="section-dashboard" class="content-section active">
+        <div class="card card-hero" style="margin-bottom:1rem;">
+          <div class="kpi-label">TOTAL OMZET PENJUALAN HARI INI</div>
+          <div class="flex-between" style="align-items:flex-end;">
+            <div class="kpi-value lg" id="kpiOmzet">Rp 0</div>
+            <span class="badge-pill badge-success" id="kpiTrend"><i class="bi bi-graph-up-arrow"></i> 0%</span>
+          </div>
+        </div>
+        <div class="grid grid-3" id="dashKpiGrid" style="margin-bottom:1rem;"></div>
+        <div class="dash-charts-grid">
+          <div class="card">
+            <div class="section-title" style="margin-bottom:0.75rem;">Tren Penjualan 7 Hari <small>Rp</small></div>
+            <canvas id="chartTren" height="140"></canvas>
+          </div>
+          <div class="card">
+            <div class="section-title" style="margin-bottom:0.75rem;">Komposisi Logam <small>Hari ini</small></div>
+            <canvas id="chartKomposisi" height="140"></canvas>
+          </div>
+        </div>
+        <div class="card" id="cardOtorisasi" style="display:none;">
+          <div class="flex-between">
+            <div><i class="bi bi-exclamation-triangle text-gold"></i> <b>Otorisasi Diperlukan</b></div>
+            <span class="badge-pill badge-warning" id="pendingCount">0</span>
+          </div>
+          <p class="kpi-sub" style="margin:8px 0;">Ada pengajuan batal/edit transaksi &amp; izin menunggu persetujuan Anda.</p>
+          <button class="btn btn-gold btn-sm" onclick="navigateTo('approval')">Tinjau Sekarang <i class="bi bi-arrow-right"></i></button>
+        </div>
+      </section>
+
+      <!-- ═══ KASIR ═══ -->
+      <section id="section-kasir" class="content-section">
+        <div class="section-title">Kasir Transaksi <button class="btn btn-gold btn-sm" onclick="openModal('modalTransaksi')"><i class="bi bi-plus-lg"></i> Transaksi Baru</button></div>
+        <div class="filter-row">
+          <span class="pill-filter active" onclick="filterTrx('ALL',this)">Semua</span>
+          <span class="pill-filter" onclick="filterTrx('PENJUALAN',this)">Penjualan</span>
+          <span class="pill-filter" onclick="filterTrx('BUYBACK',this)">Buyback</span>
+          <span class="pill-filter" onclick="filterTrx('JASA',this)">Jasa</span>
+          <span class="pill-filter" onclick="filterTrx('PENGELUARAN_OPS',this)">Pengeluaran</span>
+        </div>
+        <div id="listTransaksi"></div>
+      </section>
+
+      <!-- ═══ STOK ═══ -->
+      <section id="section-stok" class="content-section">
+        <div class="section-title">Persediaan Etalase <button class="btn btn-gold btn-sm" onclick="openModal('modalStok')"><i class="bi bi-plus-lg"></i> Tambah Stok</button></div>
+        <div class="filter-row">
+          <span class="pill-filter active" onclick="filterStok('ALL',this)">Semua</span>
+          <span class="pill-filter" onclick="filterStok('EMAS',this)">Emas</span>
+          <span class="pill-filter" onclick="filterStok('PERAK',this)">Perak</span>
+          <span class="pill-filter" onclick="filterStok('STOK',this)">Status: Stok</span>
+          <span class="pill-filter" onclick="filterStok('TERJUAL',this)">Status: Terjual</span>
+        </div>
+        <div class="table-wrap"><table class="data-table" id="tableStok">
+          <thead><tr><th>Jenis</th><th>Logam/Kadar</th><th>Berat</th><th>Modal</th><th>Jual</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </section>
+
+      <!-- ═══ KAS LACI ═══ -->
+      <section id="section-kas" class="content-section">
+        <div class="section-title">Kas Laci Kasir</div>
+        <div class="card card-hero" style="margin-bottom:1rem;">
+          <div class="kpi-label">SALDO KAS LACI SEKARANG</div>
+          <div class="kpi-value lg" id="kasLaciValue">Rp 0</div>
+          <button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="openModal('modalTutupKas')"><i class="bi bi-lock"></i> Tutup Kas Hari Ini</button>
+        </div>
+        <div class="section-title" style="font-size:14px;">Riwayat Mutasi Kas</div>
+        <div class="table-wrap"><table class="data-table" id="tableKas">
+          <thead><tr><th>Waktu</th><th>Arah</th><th>Nominal</th><th>Sumber</th><th>Saldo</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </section>
+
+      <!-- ═══ SALDO BRANKAS (OWNER) ═══ -->
+      <section id="section-brankas" class="content-section">
+        <div class="section-title">Saldo Brankas <span class="fw-chip"><i class="bi bi-shield-lock"></i> OWNER</span></div>
+        <div class="vault-balancer" style="margin-bottom:1rem;">
+          <div class="card card-hero" style="flex:1;">
+            <div class="kpi-label">Kas Laci Sekarang</div>
+            <div class="kpi-value" id="vaultKasValue">Rp 0</div>
+          </div>
+          <div class="vs"><i class="bi bi-arrow-left-right"></i></div>
+          <div class="card card-hero" style="flex:1;">
+            <div class="kpi-label">Saldo Brankas</div>
+            <div class="kpi-value" id="vaultBrankasValue">Rp 0</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:1rem;">
+          <button class="btn btn-gold" style="flex:1;" onclick="openModal('modalSetorBrankas')"><i class="bi bi-safe"></i> Setor ke Brankas</button>
+          <button class="btn btn-outline" style="flex:1;" onclick="openModal('modalTarikBrankas')"><i class="bi bi-cash-coin"></i> Tarik ke Kas</button>
+        </div>
+        <div class="section-title" style="font-size:14px;">Riwayat Mutasi Brankas</div>
+        <div class="table-wrap"><table class="data-table" id="tableBrankas">
+          <thead><tr><th>Waktu</th><th>Arah</th><th>Nominal</th><th>Catatan</th><th>Oleh</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </section>
+
+      <!-- ═══ BANK (OWNER) ═══ -->
+      <section id="section-bank" class="content-section">
+        <div class="section-title">Rekening Bank &amp; QRIS <span class="fw-chip"><i class="bi bi-shield-lock"></i> OWNER</span></div>
+        <div class="card card-hero" style="margin-bottom:1rem;">
+          <div class="kpi-label">TOTAL SALDO BANK/ATM</div>
+          <div class="kpi-value lg" id="bankSaldoValue">Rp 0</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:1rem;">
+          <button class="btn btn-gold" style="flex:1;" onclick="openModal('modalSetorBank')"><i class="bi bi-bank"></i> Setor ke Bank</button>
+          <button class="btn btn-outline" style="flex:1;" onclick="openModal('modalTarikBank')"><i class="bi bi-cash"></i> Tarik ke Kas</button>
+        </div>
+        <div class="table-wrap"><table class="data-table" id="tableBank">
+          <thead><tr><th>Waktu</th><th>Rekening</th><th>Arah</th><th>Nominal</th><th>Sumber</th><th>Saldo</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </section>
+
+      <!-- ═══ ABSENSI ═══ -->
+      <section id="section-absen" class="content-section">
+        <div class="section-title">Absensi &amp; Izin</div>
+        <div class="card" style="text-align:center;margin-bottom:1rem;">
+          <div class="camera-pad" id="cameraPad">
+            <video id="cameraVideo" autoplay playsinline muted></video>
+            <div id="cameraPlaceholder" class="camera-placeholder">
+              <i class="bi bi-camera-video-off"></i>
+            </div>
+          </div>
+          <canvas id="cameraCanvas" style="display:none;"></canvas>
+          <div class="gps-badge" id="gpsBadge"><i class="bi bi-geo-alt"></i> Mendeteksi lokasi...</div>
+          <button class="btn btn-outline btn-sm" id="btnAktifkanKamera" style="margin-top:10px;" onclick="startCamera(true)">
+            <i class="bi bi-camera-video"></i> Aktifkan Kamera
+          </button>
+          <div style="display:flex;gap:10px;margin-top:14px;">
+            <button class="btn btn-gold" style="flex:1;" onclick="lakukanAbsen('masuk')"><i class="bi bi-box-arrow-in-right"></i> Absen Masuk</button>
+            <button class="btn btn-outline" style="flex:1;" onclick="lakukanAbsen('pulang')"><i class="bi bi-box-arrow-right"></i> Absen Pulang</button>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="openModal('modalIzin')"><i class="bi bi-calendar-x"></i> Ajukan Izin/Sakit/Cuti</button>
+        </div>
+        <div class="section-title" style="font-size:14px;">Riwayat Absensi</div>
+        <div class="table-wrap"><table class="data-table" id="tableAbsen">
+          <thead><tr><th>Tanggal</th><th>Nama</th><th>Masuk</th><th>Status</th><th>Pulang</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </section>
+
+      <!-- ═══ PIUTANG/HUTANG (OWNER) ═══ -->
+      <section id="section-piutang" class="content-section">
+        <div class="section-title">Piutang &amp; Hutang <button class="btn btn-gold btn-sm" onclick="openModal('modalReceivable')"><i class="bi bi-plus-lg"></i> Catat Baru</button></div>
+        <div class="table-wrap"><table class="data-table" id="tablePiutang">
+          <thead><tr><th>Jenis</th><th>Pihak</th><th>Total</th><th>Terbayar</th><th>Sisa</th><th>Jatuh Tempo</th><th>Status</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </section>
+
+      <!-- ═══ PINJAMAN (OWNER) ═══ -->
+      <section id="section-pinjaman" class="content-section">
+        <div class="section-title">Pinjaman Uang &amp; Emas <button class="btn btn-gold btn-sm" onclick="openModal('modalLoan')"><i class="bi bi-plus-lg"></i> Catat Baru</button></div>
+        <div class="table-wrap"><table class="data-table" id="tablePinjaman">
+          <thead><tr><th>Jenis</th><th>Pihak</th><th>Jumlah</th><th>Terbayar</th><th>Sisa</th><th>Jatuh Tempo</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </section>
+
+      <!-- ═══ LAPORAN (OWNER) ═══ -->
+      <section id="section-laporan" class="content-section">
+        <div class="section-title">Laporan &amp; Rekap Akuntansi</div>
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="grid grid-3">
+            <div class="form-group"><label class="form-label">Dari Tanggal</label><input type="date" class="form-control" id="lapTglMulai"></div>
+            <div class="form-group"><label class="form-label">Sampai Tanggal</label><input type="date" class="form-control" id="lapTglSelesai"></div>
+            <div class="form-group" style="display:flex;align-items:flex-end;"><button class="btn btn-gold btn-block" onclick="muatLaporan()"><i class="bi bi-search"></i> Tampilkan</button></div>
+          </div>
+        </div>
+        <div class="grid grid-3" id="lapRingkasan" style="margin-bottom:1rem;"></div>
+        <div class="table-wrap"><table class="data-table" id="tableLaporan">
+          <thead><tr><th>Waktu</th><th>Jenis</th><th>Logam</th><th>Berat</th><th>Nominal</th><th>Metode</th><th>Operator</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <div style="display:flex;gap:10px;margin-top:1rem;">
+          <button class="btn btn-outline" onclick="cetakLaporanPDF()"><i class="bi bi-file-earmark-pdf"></i> Cetak (Printer)</button>
+          <button class="btn btn-outline" onclick="bagikanWhatsApp()"><i class="bi bi-whatsapp"></i> Bagikan WhatsApp</button>
+          <button class="btn btn-outline" id="btnEksporExcel" onclick="eksporLaporan('xlsx')"><i class="bi bi-file-earmark-excel"></i> Ekspor Excel ke Drive</button>
+          <button class="btn btn-outline" id="btnEksporPDF" onclick="eksporLaporan('pdf')"><i class="bi bi-cloud-arrow-down"></i> Ekspor PDF ke Drive</button>
+        </div>
+      </section>
+
+      <!-- ═══ KARYAWAN (OWNER) ═══ -->
+      <section id="section-karyawan" class="content-section">
+        <div class="section-title">Kelola Karyawan <button class="btn btn-gold btn-sm" onclick="openModal('modalUser')"><i class="bi bi-person-plus"></i> Tambah Akun</button></div>
+        <div class="table-wrap"><table class="data-table" id="tableKaryawan">
+          <thead><tr><th>Nama</th><th>Username</th><th>Role</th><th>Telepon</th><th>Status</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </section>
+
+      <!-- ═══ APPROVAL / NOTIFIKASI ═══ -->
+      <section id="section-approval" class="content-section">
+        <div class="section-title">Pusat Persetujuan &amp; Notifikasi</div>
+        <div class="filter-row">
+          <span class="pill-filter active" onclick="switchApprovalTab('pengajuan',this)">Pengajuan</span>
+          <span class="pill-filter" onclick="switchApprovalTab('izin',this)">Izin</span>
+          <span class="pill-filter" onclick="switchApprovalTab('tugas',this)">Tugas</span>
+          <span class="pill-filter" onclick="switchApprovalTab('info',this)">Info</span>
+        </div>
+        <div id="approvalListWrap"></div>
+      </section>
+
+      <!-- ═══ PENGATURAN (OWNER) ═══ -->
+      <section id="section-pengaturan" class="content-section">
+        <div class="section-title">Pengaturan Harga &amp; Toko</div>
+        <div class="card">
+          <div class="grid grid-2">
+            <div class="form-group"><label class="form-label">Nama Toko</label><input class="form-control" id="cfgNamaToko"></div>
+            <div class="form-group"><label class="form-label">Alamat Toko</label><input class="form-control" id="cfgAlamatToko"></div>
+            <div class="form-group"><label class="form-label">Telepon Toko</label><input class="form-control" id="cfgTeleponToko"></div>
+            <div class="form-group"><label class="form-label">Jam Masuk Kerja</label><input type="time" class="form-control" id="cfgJamMasuk"></div>
+            <div class="form-group"><label class="form-label">Latitude Toko</label><input class="form-control" id="cfgLat"></div>
+            <div class="form-group"><label class="form-label">Longitude Toko</label><input class="form-control" id="cfgLng"></div>
+            <div class="form-group"><label class="form-label">Radius Absensi (meter)</label><input type="number" class="form-control" id="cfgRadius"></div>
+            <div class="form-group"><label class="form-label">Saldo Awal Kas Laci</label><input type="number" class="form-control" id="cfgSaldoKas"></div>
+            <div class="form-group"><label class="form-label">Email Owner (notifikasi persetujuan)</label><input type="email" class="form-control" id="cfgEmailOwner" placeholder="owner@email.com"></div>
+          </div>
+          <button class="btn btn-gold" onclick="simpanPengaturan()"><i class="bi bi-save"></i> Simpan Pengaturan</button>
+        </div>
+        <hr class="soft">
+        <div class="card">
+          <div class="flex-between">
+            <div><b>Backup &amp; Audit Log</b><div class="kpi-sub">Unduh salinan data penting toko.</div></div>
+            <button class="btn btn-outline btn-sm" onclick="unduhBackup()"><i class="bi bi-download"></i> Unduh Backup JSON</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- BOTTOM NAV MOBILE -->
+  <nav class="bottom-nav" id="bottomNav">
+    <a class="bnav-item active" data-nav="dashboard" onclick="navigateTo('dashboard')"><i class="bi bi-grid-fill"></i><span>Home</span></a>
+    <a class="bnav-item" data-nav="stok" onclick="navigateTo('stok')"><i class="bi bi-box-seam"></i><span>Stok</span></a>
+    <a class="bnav-item fab" onclick="openModal('modalTransaksi')"><div class="fab-circle"><i class="bi bi-cart-plus"></i></div></a>
+    <a class="bnav-item" data-nav="absen" onclick="navigateTo('absen')"><i class="bi bi-fingerprint"></i><span>Absen</span></a>
+    <a class="bnav-item" data-nav="menu" onclick="openMobileMenu()"><i class="bi bi-list"></i><span>Menu</span></a>
+  </nav>
+</div>
+
+<!-- ══════════ MOBILE MENU SHEET ══════════ -->
+<div class="modal-overlay" id="modalMobileMenu">
+  <div class="modal-box">
+    <div class="modal-header"><h5>Menu Lainnya</h5><button class="close-x" onclick="closeModal('modalMobileMenu')">&times;</button></div>
+    <div class="modal-body"><ul class="sidebar-nav" id="mobileMenuNav" style="padding:0;"></ul></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: TRANSAKSI ══════════ -->
+<div class="modal-overlay" id="modalTransaksi">
+  <div class="modal-box">
+    <div class="modal-header"><h5><i class="bi bi-cart-plus text-gold"></i> Transaksi Baru</h5><button class="close-x" onclick="closeModal('modalTransaksi')">&times;</button></div>
+    <div class="modal-body">
+      <form id="formTransaksi">
+        <div class="form-group">
+          <label class="form-label">Jenis Transaksi</label>
+          <select class="form-control" id="trxJenis" onchange="onTrxJenisChange()">
+            <option value="PENJUALAN">Penjualan</option>
+            <option value="BUYBACK">Buyback (Beli Kembali)</option>
+            <option value="JASA">Jasa / Pemasukan Lain</option>
+            <option value="PENGELUARAN_OPS">Pengeluaran Operasional</option>
+          </select>
+        </div>
+        <div class="form-group" id="trxItemWrap">
+          <label class="form-label">Pilih Item Stok</label>
+          <select class="form-control" id="trxItemId"></select>
+        </div>
+        <div class="grid grid-2">
+          <div class="form-group"><label class="form-label">Logam</label>
+            <select class="form-control" id="trxLogam"><option value="EMAS">Emas</option><option value="PERAK">Perak</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">Kategori / Keterangan</label><input class="form-control" id="trxKategori" placeholder="Kalung, ongkos service, dll"></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="form-group"><label class="form-label">Berat (gr)</label><input type="number" step="0.01" class="form-control" id="trxBerat"></div>
+          <div class="form-group"><label class="form-label">Nominal (Rp)</label><input type="text" inputmode="numeric" class="form-control" id="trxNominal" placeholder="0" required></div>
+        </div>
+        <div class="form-group" id="trxApprovalHint" style="display:none;">
+          <div class="badge-pill badge-warning" style="white-space:normal;height:auto;padding:8px 12px;line-height:1.4;">
+            <i class="bi bi-exclamation-triangle"></i>&nbsp;Pengeluaran ≥ Rp20.000.000 akan dikirim untuk persetujuan Owner. Kas laci belum dipotong sampai disetujui.
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Metode Bayar</label>
+          <select class="form-control" id="trxMetode" onchange="onTrxMetodeChange()">
+            <option value="TUNAI">Tunai</option>
+            <option value="TRANSFER">Transfer / QRIS / EDC</option>
+          </select>
+        </div>
+        <div id="trxTransferFields" style="display:none;">
+          <div class="form-group" id="trxRekeningWrap"><label class="form-label">Rekening Tujuan/Sumber</label><input class="form-control" id="trxRekening" placeholder="BCA EDC / QRIS Nabire"></div>
+          <div class="form-group">
+            <label class="form-label" id="trxBuktiLabel">Bukti Transfer (wajib)</label>
+            <div class="drop-zone" onclick="document.getElementById('trxBuktiInput').click()">
+              <i class="bi bi-cloud-arrow-up fs-4"></i><br><span id="trxBuktiHelpText">Ketuk untuk unggah foto bukti</span>
+              <div id="trxBuktiPreviewWrap"></div>
+            </div>
+            <input type="file" id="trxBuktiInput" accept="image/*" capture="environment" style="display:none;" onchange="previewBukti(this)">
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">Catatan (opsional)</label><textarea class="form-control" id="trxCatatan"></textarea></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalTransaksi')">Batal</button>
+      <button class="btn btn-gold" id="btnSimpanTrx" onclick="simpanTransaksi()">Simpan Transaksi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: TRANSAKSI BERHASIL (struk) ══════════ -->
+<div class="modal-overlay" id="modalStrukBerhasil">
+  <div class="modal-box">
+    <div class="modal-header"><h5><i class="bi bi-check-circle text-gold"></i> Transaksi Berhasil</h5><button class="close-x" onclick="closeModal('modalStrukBerhasil')">&times;</button></div>
+    <div class="modal-body" id="strukRingkasanBody"></div>
+    <div class="modal-footer" style="flex-wrap:wrap;">
+      <button class="btn btn-outline" style="flex:1 1 100%;" onclick="cetakStruk()"><i class="bi bi-printer"></i> Cetak Struk</button>
+      <button class="btn btn-outline" style="flex:1 1 100%;" onclick="kirimStrukWA()"><i class="bi bi-whatsapp"></i> Kirim Struk via WhatsApp</button>
+      <button class="btn btn-gold" style="flex:1 1 100%;" onclick="closeModal('modalStrukBerhasil')">Selesai</button>
+    </div>
+  </div>
+</div>
+
+<!-- Area cetak struk thermal -- hanya terlihat saat print (lihat css @media print) -->
+<div id="strukPrintArea"></div>
+
+<!-- ══════════ MODAL: BATAL/EDIT TRANSAKSI ══════════ -->
+<div class="modal-overlay" id="modalBatalTrx">
+  <div class="modal-box">
+    <div class="modal-header"><h5><i class="bi bi-x-circle text-danger2"></i> Ajukan Pembatalan</h5><button class="close-x" onclick="closeModal('modalBatalTrx')">&times;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="batalTrxId">
+      <div class="form-group"><label class="form-label">Alasan Pembatalan</label><textarea class="form-control" id="batalAlasan" required></textarea></div>
+      <p class="kpi-sub">Karyawan: pengajuan akan dikirim ke Owner untuk disetujui. Owner: perubahan berlaku langsung.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalBatalTrx')">Batal</button>
+      <button class="btn btn-danger" onclick="kirimPembatalan()">Ajukan Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: TAMBAH STOK ══════════ -->
+<div class="modal-overlay" id="modalStok">
+  <div class="modal-box">
+    <div class="modal-header"><h5><i class="bi bi-box-seam text-gold"></i> Tambah Stok</h5><button class="close-x" onclick="closeModal('modalStok')">&times;</button></div>
+    <div class="modal-body">
+      <div class="grid grid-2">
+        <div class="form-group"><label class="form-label">Logam</label><select class="form-control" id="stokLogam"><option value="EMAS">Emas</option><option value="PERAK">Perak</option></select></div>
+        <div class="form-group"><label class="form-label">Jenis Barang</label><input class="form-control" id="stokJenis" placeholder="Kalung, Cincin, dll"></div>
+        <div class="form-group"><label class="form-label">Kadar</label><input class="form-control" id="stokKadar" placeholder="700 / 999 / 925"></div>
+        <div class="form-group"><label class="form-label">Berat (gr)</label><input type="number" step="0.01" class="form-control" id="stokBerat"></div>
+        <div class="form-group" id="stokModalWrap"><label class="form-label">Harga Modal (Rp)</label><input type="text" inputmode="numeric" class="form-control" id="stokHargaModal"></div>
+        <div class="form-group"><label class="form-label">Harga Jual (Rp)</label><input type="text" inputmode="numeric" class="form-control" id="stokHargaJual"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dibayar Dari</label>
+        <select class="form-control" id="stokDibayarDari" onchange="document.getElementById('stokRekeningWrap').style.display=this.value==='TRANSFER'?'block':'none'">
+          <option value="">Tidak dicatat sebagai pengeluaran</option>
+          <option value="TUNAI">Kas Laci</option>
+          <option value="TRANSFER">Transfer Bank</option>
+        </select>
+      </div>
+      <div class="form-group" id="stokRekeningWrap" style="display:none;"><label class="form-label">Rekening</label><input class="form-control" id="stokRekening"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalStok')">Batal</button>
+      <button class="btn btn-gold" onclick="simpanStok()">Simpan Stok</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: TUTUP KAS ══════════ -->
+<div class="modal-overlay" id="modalTutupKas">
+  <div class="modal-box">
+    <div class="modal-header"><h5><i class="bi bi-lock text-gold"></i> Tutup Kas Laci</h5><button class="close-x" onclick="closeModal('modalTutupKas')">&times;</button></div>
+    <div class="modal-body">
+      <div class="card" style="margin-bottom:1rem;"><div class="kpi-label">Saldo Sistem Saat Ini</div><div class="kpi-value" id="tutupKasSistemValue">Rp 0</div></div>
+      <div class="form-group"><label class="form-label">Hitung Uang Fisik (Rp)</label><input type="text" inputmode="numeric" class="form-control" id="tutupKasFisik" oninput="hitungSelisihKas()" required></div>
+      <div class="form-group" id="selisihKasWrap" style="display:none;"></div>
+      <div class="form-group"><label class="form-label">Catatan</label><textarea class="form-control" id="tutupKasCatatan"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalTutupKas')">Batal</button>
+      <button class="btn btn-gold" onclick="simpanTutupKas()">Simpan Tutup Kas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: SETOR/TARIK BRANKAS ══════════ -->
+<div class="modal-overlay" id="modalSetorBrankas">
+  <div class="modal-box">
+    <div class="modal-header"><h5><i class="bi bi-safe text-gold"></i> Setor ke Brankas</h5><button class="close-x" onclick="closeModal('modalSetorBrankas')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nominal (Rp)</label><input type="text" inputmode="numeric" class="form-control" id="setorBrankasNominal" required></div>
+      <div class="form-group"><label class="form-label">Catatan</label><textarea class="form-control" id="setorBrankasCatatan"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalSetorBrankas')">Batal</button><button class="btn btn-gold" onclick="prosesSetorBrankas()">Setor</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalTarikBrankas">
+  <div class="modal-box">
+    <div class="modal-header"><h5><i class="bi bi-cash-coin text-gold"></i> Tarik ke Kas Laci</h5><button class="close-x" onclick="closeModal('modalTarikBrankas')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nominal (Rp)</label><input type="text" inputmode="numeric" class="form-control" id="tarikBrankasNominal" required></div>
+      <div class="form-group"><label class="form-label">Catatan</label><textarea class="form-control" id="tarikBrankasCatatan"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalTarikBrankas')">Batal</button><button class="btn btn-gold" onclick="prosesTarikBrankas()">Tarik</button></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: SETOR/TARIK BANK ══════════ -->
+<div class="modal-overlay" id="modalSetorBank">
+  <div class="modal-box">
+    <div class="modal-header"><h5><i class="bi bi-bank text-gold"></i> Setor Kas ke Bank</h5><button class="close-x" onclick="closeModal('modalSetorBank')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Rekening</label><input class="form-control" id="setorBankRekening" placeholder="BCA EDC / QRIS Nabire"></div>
+      <div class="form-group"><label class="form-label">Nominal (Rp)</label><input type="text" inputmode="numeric" class="form-control" id="setorBankNominal" required></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalSetorBank')">Batal</button><button class="btn btn-gold" onclick="prosesSetorBank()">Setor</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalTarikBank">
+  <div class="modal-box">
+    <div class="modal-header"><h5><i class="bi bi-cash text-gold"></i> Tarik Bank ke Kas</h5><button class="close-x" onclick="closeModal('modalTarikBank')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Rekening</label><input class="form-control" id="tarikBankRekening" placeholder="BCA EDC / QRIS Nabire"></div>
+      <div class="form-group"><label class="form-label">Nominal (Rp)</label><input type="text" inputmode="numeric" class="form-control" id="tarikBankNominal" required></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalTarikBank')">Batal</button><button class="btn btn-gold" onclick="prosesTarikBank()">Tarik</button></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: IZIN ══════════ -->
+<div class="modal-overlay" id="modalIzin">
+  <div class="modal-box">
+    <div class="modal-header"><h5><i class="bi bi-calendar-x text-gold"></i> Ajukan Izin/Sakit/Cuti</h5><button class="close-x" onclick="closeModal('modalIzin')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Jenis</label>
+        <select class="form-control" id="izinJenis"><option value="IZIN">Izin</option><option value="SAKIT">Sakit</option><option value="CUTI">Cuti</option></select>
+      </div>
+      <div class="grid grid-2">
+        <div class="form-group"><label class="form-label">Mulai</label><input type="date" class="form-control" id="izinMulai"></div>
+        <div class="form-group"><label class="form-label">Selesai</label><input type="date" class="form-control" id="izinSelesai"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Alasan</label><textarea class="form-control" id="izinAlasan" required></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalIzin')">Batal</button><button class="btn btn-gold" onclick="kirimIzin()">Ajukan</button></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: PIUTANG/HUTANG ══════════ -->
+<div class="modal-overlay" id="modalReceivable">
+  <div class="modal-box">
+    <div class="modal-header"><h5>Catat Piutang/Hutang</h5><button class="close-x" onclick="closeModal('modalReceivable')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Jenis</label><select class="form-control" id="recJenis"><option value="PIUTANG">Piutang (Toko dipinjam)</option><option value="HUTANG">Hutang (Toko meminjam)</option></select></div>
+      <div class="form-group"><label class="form-label">Nama Pihak</label><input class="form-control" id="recNama"></div>
+      <div class="grid grid-2">
+        <div class="form-group"><label class="form-label">Total (Rp)</label><input type="text" inputmode="numeric" class="form-control" id="recTotal"></div>
+        <div class="form-group"><label class="form-label">Jatuh Tempo</label><input type="date" class="form-control" id="recJatuhTempo"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Catatan</label><textarea class="form-control" id="recCatatan"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalReceivable')">Batal</button><button class="btn btn-gold" onclick="simpanReceivable()">Simpan</button></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: PINJAMAN ══════════ -->
+<div class="modal-overlay" id="modalLoan">
+  <div class="modal-box">
+    <div class="modal-header"><h5>Catat Pinjaman</h5><button class="close-x" onclick="closeModal('modalLoan')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Jenis</label><select class="form-control" id="loanJenis"><option value="PINJAMAN_UANG">Pinjaman Uang</option><option value="PINJAMAN_EMAS">Pinjaman Emas</option></select></div>
+      <div class="form-group"><label class="form-label">Nama Pihak</label><input class="form-control" id="loanNama"></div>
+      <div class="grid grid-2">
+        <div class="form-group"><label class="form-label">Jumlah</label><input type="number" class="form-control" id="loanJumlah"></div>
+        <div class="form-group"><label class="form-label">Satuan</label><input class="form-control" id="loanSatuan" placeholder="Rp / gram"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Jatuh Tempo</label><input type="date" class="form-control" id="loanJatuhTempo"></div>
+      <div class="form-group"><label class="form-label">Catatan</label><textarea class="form-control" id="loanCatatan"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalLoan')">Batal</button><button class="btn btn-gold" onclick="simpanLoan()">Simpan</button></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: TAMBAH KARYAWAN ══════════ -->
+<div class="modal-overlay" id="modalUser">
+  <div class="modal-box">
+    <div class="modal-header"><h5>Tambah Akun Karyawan</h5><button class="close-x" onclick="closeModal('modalUser')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nama Lengkap</label><input class="form-control" id="userNama"></div>
+      <div class="grid grid-2">
+        <div class="form-group"><label class="form-label">Username</label><input class="form-control" id="userUsername"></div>
+        <div class="form-group"><label class="form-label">Password Awal</label><input type="text" class="form-control" id="userPassword"></div>
+      </div>
+      <div class="grid grid-2">
+        <div class="form-group"><label class="form-label">Role</label><select class="form-control" id="userRole"><option value="KARYAWAN">Karyawan</option><option value="OWNER">Owner</option></select></div>
+        <div class="form-group"><label class="form-label">Telepon</label><input class="form-control" id="userTelepon"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalUser')">Batal</button><button class="btn btn-gold" onclick="simpanUser()">Simpan</button></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: PREVIEW FILE ══════════ -->
+<div class="modal-overlay" id="modalPreview">
+  <div class="modal-box">
+    <div class="modal-header"><h5>Pratinjau</h5><button class="close-x" onclick="closeModal('modalPreview')">&times;</button></div>
+    <div class="modal-body" id="previewContent" style="text-align:center;"></div>
+    <div class="modal-footer"><a id="previewDownloadBtn" href="#" target="_blank" class="btn btn-gold">Unduh</a></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: NOTIFIKASI ══════════ -->
+<div class="modal-overlay" id="modalNotif">
+  <div class="modal-box">
+    <div class="modal-header"><h5><i class="bi bi-bell text-gold"></i> Notifikasi</h5><button class="close-x" onclick="closeModal('modalNotif')">&times;</button></div>
+    <div class="modal-body" id="notifListBody"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
